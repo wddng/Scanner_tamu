@@ -2,14 +2,14 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Scan Kehadiran</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scanner Kehadiran</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
-
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  
-  <style>
+
+<style>
 body{
   margin:0;
   font-family:Arial, sans-serif;
@@ -18,85 +18,95 @@ body{
   text-align:center;
 }
 
-.topbar{
-  padding:12px;
+.header{
+  padding:14px;
   font-size:18px;
   font-weight:bold;
   background:#111;
 }
 
-/* reader JANGAN pakai height tetap */
 #reader{
   width:100%;
-  max-width:500px;
-  margin:12px auto;
+  max-width:520px;
+  margin:15px auto;
 }
 
-/* paksa video terlihat */
 #reader video{
   width:100% !important;
   height:auto !important;
-  display:block;
   border-radius:12px;
 }
 
 #status{
-  padding:14px;
+  margin-top:10px;
+  padding:12px;
   font-size:16px;
+  background:#111;
+  min-height:24px;
 }
-.success{color:green}
-.error{color:red}
+.success{
+  color:#00ff88;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
-<div class="topbar">Scan QR Kehadiran</div>
+
+<div class="header">📷 Scan QR Kehadiran Tamu</div>
 <div id="reader"></div>
-<div id="status">Arahkan kamera ke QR tamu</div>
+<div id="status">Membuka kamera...</div>
 
 <script>
+// 🔥 Firebase
 firebase.initializeApp({
   apiKey: "AIzaSyAbFiLWZS5H1672SpouCn1deEAAn4qVqDs",
   databaseURL: "https://undanganwidi-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
-
 const db = firebase.database();
 
-function onScanSuccess(decodedText) {
+// 🔊 bunyi beep sukses
+function beep(){
+  const ctx = new AudioContext();
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = 900;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>osc.stop(),150);
+}
 
-  const [idTamu, nama] = decodedText.split("|");
-  if(!idTamu) return;
+const statusBox = document.getElementById("status");
+const html5QrCode = new Html5Qrcode("reader");
 
-  const ref = db.ref("bukutamu/" + idTamu);
+// 🚀 Langsung start kamera belakang
+Html5Qrcode.getCameras().then(devices => {
+  const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
 
-  ref.once("value", snap => {
-    if(!snap.exists()){
-      ref.set({
+  html5QrCode.start(
+    backCam.id,
+    { fps: 10, qrbox: 260 },
+    (decodedText) => {
+
+      const [idTamu, nama] = decodedText.split("|");
+      if(!idTamu) return;
+
+      db.ref("bukutamu/"+idTamu).update({
         nama: nama,
-        hadir: true,
-        waktuHadir: Date.now(),
-        pesan: "",
-        like: 0
-      });
-    } else {
-      ref.update({
         hadir: true,
         waktuHadir: Date.now()
       });
+
+      beep();
+      statusBox.innerHTML = "✅ <span class='success'>Berhasil!</span><br>Tamu <b>"+nama+"</b> sudah hadir.";
+
     }
-  });
+  );
 
-  document.getElementById("status").innerHTML =
-    "✅ Kehadiran dicatat: <b>" + nama + "</b>";
-}
-
-const scanner = new Html5QrcodeScanner(
-  "reader",
-  { fps: 10, qrbox: 250 },
-  false
-);
-
-scanner.render(onScanSuccess);
+}).catch(err=>{
+  statusBox.innerHTML = "❌ Kamera gagal diakses: " + err;
+});
 </script>
+
 </body>
 </html>
