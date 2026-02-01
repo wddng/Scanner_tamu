@@ -36,10 +36,30 @@ qr.start(
 
     if(!idTamu) return;
 
-    db.ref("bukutamu/" + idTamu).update({
+    const ref = db.ref("bukutamu/" + idTamu);
+
+ref.once("value", snap => {
+
+  // kalau data tamu BELUM ADA
+  if(!snap.exists()){
+    ref.set({
+      nama: nama,
+      hadir: true,
+      waktuHadir: Date.now(),
+      pesan: "",
+      like: 0
+    });
+  }
+
+  // kalau SUDAH ADA (misalnya sudah kirim ucapan)
+  else{
+    ref.update({
       hadir: true,
       waktuHadir: Date.now()
     });
+  }
+
+});
 
     document.getElementById("status").innerHTML =
       "✅ Kehadiran dicatat: <b>" + nama + "</b>";
@@ -49,4 +69,4 @@ qr.start(
 );
 </script>
 </body>
-                                                                               </html>
+</html>
