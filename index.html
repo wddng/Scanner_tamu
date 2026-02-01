@@ -11,28 +11,42 @@
   
   <style>
 body{
-  font-family:Arial, sans-serif;
-  text-align:center;
   margin:0;
+  font-family:Arial, sans-serif;
   background:#000;
+  color:white;
 }
 
+/* HEADER ATAS */
+.topbar{
+  text-align:center;
+  padding:12px;
+  font-size:18px;
+  font-weight:bold;
+  background:#111;
+}
+
+/* AREA KAMERA */
 #reader{
-  width:100%;
-  max-width:500px;   /* biar tidak kepanjangan di tablet */
-  margin:auto;
+  width:100vw;
+  height:70vh;
+  position:relative;
 }
 
-#status{
-  margin-top:12px;
-  font-size:16px;
-  padding:10px;
-}
-  
+/* PAKSA VIDEO FULL */
 #reader video{
   width:100% !important;
-  height:auto !important;
+  height:100% !important;
+  object-fit:cover !important;
   border-radius:12px;
+}
+
+/* STATUS BAWAH */
+#status{
+  text-align:center;
+  padding:14px;
+  font-size:16px;
+  background:#111;
 }
 .success{color:green}
 .error{color:red}
@@ -40,9 +54,9 @@ body{
 </head>
 
 <body>
-<h2>Scan QR Kehadiran</h2>
+<div class="topbar">Scan QR Kehadiran</div>
 <div id="reader"></div>
-<p id="status"></p>
+<div id="status">Arahkan kamera ke QR tamu</div>
 
 <script>
 /* FIREBASE */
@@ -56,13 +70,41 @@ const db = firebase.database();
 /* QR SCAN */
 const qr = new Html5Qrcode("reader");
 
-qr.start(
-  { facingMode: "environment" },
-  {
-    fps: 10,
-    qrbox: { width: 280, height: 280 } // kotak scan besar
-  },
-  (decodedText) => {
+const qr = new Html5Qrcode("reader");
+
+function startScanner(){
+  qr.start(
+    { facingMode: { exact: "environment" } }, // paksa kamera belakang
+    {
+      fps: 10,
+      aspectRatio: 1.777,        // bikin tampilan lebar (16:9)
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const qrSize = Math.floor(minEdge * 0.6);
+        return { width: qrSize, height: qrSize };
+      }
+    },
+    onScanSuccess
+  );
+}
+
+function onScanSuccess(decodedText){
+  const [idTamu, nama] = decodedText.split("|");
+  if(!idTamu) return;
+
+  const ref = db.ref("bukutamu/" + idTamu);
+
+  ref.update({
+    nama: nama,
+    hadir: true,
+    waktuHadir: Date.now()
+  });
+
+  document.getElementById("status").innerHTML =
+    "✅ Hadir: <b>"+nama+"</b>";
+}
+
+startScanner();
     // hasil: id|nama
     const [idTamu, nama] = decodedText.split("|");
 
