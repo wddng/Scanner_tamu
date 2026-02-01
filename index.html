@@ -55,7 +55,6 @@ body{
 <div id="status">Arahkan kamera ke QR tamu</div>
 
 <script>
-/* FIREBASE */
 firebase.initializeApp({
   apiKey: "AIzaSyAbFiLWZS5H1672SpouCn1deEAAn4qVqDs",
   databaseURL: "https://undanganwidi-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -63,80 +62,41 @@ firebase.initializeApp({
 
 const db = firebase.database();
 
-/* QR SCAN */
-const qr = new Html5Qrcode("reader");
+function onScanSuccess(decodedText) {
 
-const qr = new Html5Qrcode("reader");
-
-function startScanner(){
-  qr.start(
-    { facingMode: { exact: "environment" } }, // paksa kamera belakang
-    {
-      fps: 10,
-      aspectRatio: 1.777,        // bikin tampilan lebar (16:9)
-      qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-        const qrSize = Math.floor(minEdge * 0.6);
-        return { width: qrSize, height: qrSize };
-      }
-    },
-    onScanSuccess
-  );
-}
-
-function onScanSuccess(decodedText){
   const [idTamu, nama] = decodedText.split("|");
   if(!idTamu) return;
 
   const ref = db.ref("bukutamu/" + idTamu);
 
-  ref.update({
-    nama: nama,
-    hadir: true,
-    waktuHadir: Date.now()
+  ref.once("value", snap => {
+    if(!snap.exists()){
+      ref.set({
+        nama: nama,
+        hadir: true,
+        waktuHadir: Date.now(),
+        pesan: "",
+        like: 0
+      });
+    } else {
+      ref.update({
+        hadir: true,
+        waktuHadir: Date.now()
+      });
+    }
   });
 
   document.getElementById("status").innerHTML =
-    "✅ Hadir: <b>"+nama+"</b>";
+    "✅ Kehadiran dicatat: <b>" + nama + "</b>";
 }
 
-startScanner();
-    // hasil: id|nama
-    const [idTamu, nama] = decodedText.split("|");
-
-    if(!idTamu) return;
-
-    const ref = db.ref("bukutamu/" + idTamu);
-
-ref.once("value", snap => {
-
-  // kalau data tamu BELUM ADA
-  if(!snap.exists()){
-    ref.set({
-      nama: nama,
-      hadir: true,
-      waktuHadir: Date.now(),
-      pesan: "",
-      like: 0
-    });
-  }
-
-  // kalau SUDAH ADA (misalnya sudah kirim ucapan)
-  else{
-    ref.update({
-      hadir: true,
-      waktuHadir: Date.now()
-    });
-  }
-
-});
-
-    document.getElementById("status").innerHTML =
-      "✅ Kehadiran dicatat: <b>" + nama + "</b>";
-
-    qr.stop();
-  }
+const scanner = new Html5QrcodeScanner(
+  "reader",
+  { fps: 10, qrbox: 250 },
+  false
 );
+
+scanner.render(onScanSuccess);
 </script>
 </body>
 </html>
