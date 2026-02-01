@@ -15,38 +15,34 @@ body{
   font-family:Arial, sans-serif;
   background:#000;
   color:white;
+  text-align:center;
 }
 
-/* HEADER ATAS */
 .topbar{
-  text-align:center;
   padding:12px;
   font-size:18px;
   font-weight:bold;
   background:#111;
 }
 
-/* AREA KAMERA */
+/* reader JANGAN pakai height tetap */
 #reader{
-  width:100vw;
-  height:70vh;
-  position:relative;
+  width:100%;
+  max-width:500px;
+  margin:12px auto;
 }
 
-/* PAKSA VIDEO FULL */
+/* paksa video terlihat */
 #reader video{
   width:100% !important;
-  height:100% !important;
-  object-fit:cover !important;
+  height:auto !important;
+  display:block;
   border-radius:12px;
 }
 
-/* STATUS BAWAH */
 #status{
-  text-align:center;
   padding:14px;
   font-size:16px;
-  background:#111;
 }
 .success{color:green}
 .error{color:red}
